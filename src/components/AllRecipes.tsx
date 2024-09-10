@@ -123,7 +123,7 @@ export const AllRecipes: FC<Props> = ({ data, isLoading, error}) => {
 
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
         <Pagination
-          count={data ? Math.ceil(data.length / recipesPerPage) : 0}
+          count={currentRecipes ? Math.ceil(currentRecipes.length / recipesPerPage) : 0}
           page={currentPage}
           onChange={(_, value) => setCurrentPage(value)}
           color="primary"

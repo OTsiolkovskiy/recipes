@@ -5,23 +5,6 @@ import { useNavigate } from 'react-router-dom';
 import { Meal } from '../types/mealTypes';
 import { RecipeCard } from './RecipeCard';
 
-// const StyledCard = styled(Card)({
-//   backgroundColor: "#f0f8ff",
-//   color: "#333",
-//   margin: "10px",
-//   borderRadius: "10px",
-//   boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
-//   width: "500px",
-// });
-
-// const StyledButton = styled(Button)({
-//   backgroundColor: "#87CEFA",
-//   color: "#fff",
-//   '&:hover': {
-//     backgroundColor: "#4682B4",
-//   },
-// });
-
 export const IngredientList: FC = () => {
   const getFavoriteRecipes = useRecipeStore((state) => state.getFavoriteRecipes);
   const favoriteRecipes = getFavoriteRecipes();
