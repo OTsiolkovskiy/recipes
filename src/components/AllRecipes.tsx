@@ -1,7 +1,6 @@
 import { Meal } from "../types/mealTypes";
-import { FC, useEffect } from "react";
+import { FC, useEffect, useMemo, useState } from "react";
 import Pagination from '@mui/material/Pagination';
-import { useState } from 'react';
 import { Box, Button, styled, TextField, Typography } from "@mui/material";
 import debounce from 'lodash/debounce';
 import { useRecipeStore } from "../store/recipes";
@@ -45,43 +44,56 @@ export const AllRecipes: FC<Props> = ({ data, isLoading, error}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredRecipes, setFilteredRecipes] = useState<Meal[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  
+
   const { data: categories } = useQuery<Category[]>({
     queryKey: queryKeys.categories,
     queryFn: getCategories,
   });
   
   const favorites = useRecipeStore(state => state.favorites);
+  const recipesPerPage = 9;
 
-  const recipesPerPage = 10;
-  const indexOfLastRecipe = currentPage * recipesPerPage;
-  const indexOfFirstRecipe = indexOfLastRecipe - recipesPerPage;
-
-  const filterRecipes = (query: string) => {
+  const filterRecipes = (query: string, categories: string[]) => {
     if (!data) return [];
-    return data.filter((meal) =>
-      meal.strMeal.toLowerCase().includes(query.toLowerCase())
-    );
+    
+    let result = data;
+    
+    if (query) {
+      result = result.filter((meal) =>
+        meal.strMeal.toLowerCase().includes(query.toLowerCase())
+      );
+    }
+
+    if (categories.length > 0) {
+      result = result.filter(meal => categories.includes(meal.strCategory));
+    }
+
+    return result;
   };
 
-  const debouncedFilterRecipes = debounce((query: string) => {
-    setFilteredRecipes(filterRecipes(query));
+  const debouncedFilterRecipes = debounce((query: string, categories: string[]) => {
+    setFilteredRecipes(filterRecipes(query, categories));
+    setCurrentPage(1);
   }, 300);
 
   useEffect(() => {
-    debouncedFilterRecipes(searchQuery);
-  }, [searchQuery, data]);
+    debouncedFilterRecipes(searchQuery, selectedCategories);
+  }, [searchQuery, selectedCategories, data]);
 
-  let currentRecipes = filteredRecipes.slice(indexOfFirstRecipe, indexOfLastRecipe);
+  const totalPages = Math.ceil(filteredRecipes.length / recipesPerPage);
+  
+  const indexOfLastRecipe = currentPage * recipesPerPage;
+  const indexOfFirstRecipe = indexOfLastRecipe - recipesPerPage;
 
-  currentRecipes = selectedCategories.length > 0 
-    ? currentRecipes.filter(recipe => selectedCategories.includes(recipe.strCategory)) 
-    : currentRecipes;
+  const currentRecipes = useMemo(() => 
+    filteredRecipes.slice(indexOfFirstRecipe, indexOfLastRecipe), 
+    [filteredRecipes, currentPage]
+  );
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error loading recipes</div>;
 
-  const favoritesIds = favorites.map(el => el.idMeal)
+  const favoritesIds = favorites.map(el => el.idMeal);
 
   return (
     <div style={{ padding: "10px"}}>
@@ -92,19 +104,20 @@ export const AllRecipes: FC<Props> = ({ data, isLoading, error}) => {
           </Typography>
         </Button>
       </Link>
+
       <FiltersGrid>
         <div style={{ flex: "1" }}>
           {categories && (
             <MultipleSelect
               categories={categories}
               selectedCategories={selectedCategories}
-             onChange={setSelectedCategories}
+              onChange={setSelectedCategories}
             />
           )}
         </div>
 
         <div style={{ flex: "1" }}>
-        <TextField
+          <TextField
             label="Search"
             variant="outlined"
             fullWidth
@@ -112,7 +125,7 @@ export const AllRecipes: FC<Props> = ({ data, isLoading, error}) => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-     </FiltersGrid>
+      </FiltersGrid>
 
       <RecipeGrid>
         {currentRecipes && currentRecipes.length === 0 && <h2>No results found. Please try adjusting your search criteria.</h2>}
@@ -123,7 +136,7 @@ export const AllRecipes: FC<Props> = ({ data, isLoading, error}) => {
 
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
         <Pagination
-          count={currentRecipes ? Math.ceil(currentRecipes.length / recipesPerPage) : 0}
+          count={totalPages}
           page={currentPage}
           onChange={(_, value) => setCurrentPage(value)}
           color="primary"
